@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Study Pug Companion</title>
+    <style>
+        :root {
+            --bg-color: #f7f8fa;
+            --nav-bg: #ffffff;
+            --active-bg: #f0f2f5;
+            --text-main: #333;
+            --text-muted: #888;
+            --accent: #4A90E2;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e0e5ec;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: manipulation;
+        }
+
+        /* Mobile App Container */
+        #app {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 850px;
+            background-color: var(--bg-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Top Environment (Always Visible) */
+        #environment {
+            height: 320px;
+            flex-shrink: 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease;
+            /* Default Pixel Background */
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 60%, #55cc55 60%, #32CD32 100%);
+        }
+
+        /* Retro Pixel Grid Overlay */
+        .pixel-bg-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+            background-size: 8px 8px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Unified Pet Animation */
+        #pet-wrapper {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            animation: floatAndBreathe 3s ease-in-out infinite;
+            z-index: 10;
+            cursor: pointer;
+        }
+
+        @keyframes floatAndBreathe {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-12px) scale(1.02, 0.98); }
+        }
+
+        /* Pixel Pug Grid */
+        #base-pug {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            grid-template-rows: repeat(16, 1fr);
+        }
+
+        /* Costume Overlay Grid */
+        #costume-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            grid-template-rows: repeat(16, 1fr);
+            pointer-events: none;
+            z-index: 15;
+        }
+        .pixel { width: 100%; height: 100%; }
+
+        /* Shop Item Overlays */
+        #shop-overlay { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 20; }
+        .equip-hat { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 65px; }
+        .equip-drink { position: absolute; bottom: -5px; right: -15px; font-size: 50px; }
+        .equip-food { position: absolute; bottom: -5px; left: -15px; font-size: 50px; }
+
+        /* App Panels */
+        .panel {
+            flex: 1;
+            background: white;
+            z-index: 20;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .panel.active { display: flex; }
+        h2 { margin-top: 0; color: var(--text-main); }
+        
+        /* Buttons */
+        .btn {
+            background: var(--accent); color: white; border: none; padding: 15px; border-radius: 12px;
+            font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; text-align: center;
+        }
+        .btn:active { transform: scale(0.95); }
+
+        /* Timer */
+        #timer-display {
+            font-size: 4rem; font-weight: bold; text-align: center; margin: 40px 0; color: var(--text-main); cursor: pointer;
+        }
+        
+        .time-picker-hidden {
+            display: none;
+            font-size: 3rem; font-weight: bold; text-align: center; margin: 40px auto;
+            border: 2px solid var(--accent); border-radius: 12px; padding: 10px;
+            color: var(--text-main); background: white; width: 80%;
+            font-family: inherit;
+        }
+
+        /* Friends & Leaderboard */
+        .friend-box { background: #f0f2f5; padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: center; }
+        .friend-input-group { display: flex; gap: 10px; margin-top: 10px; }
+        .friend-input-group input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+        .leaderboard-item {
+            display: flex; justify-content: space-between; padding: 15px;
+            background: #f8f9fa; margin-bottom: 10px; border-radius: 12px; align-items: center;
+        }
+        .leaderboard-item.highlight { background: #e3f2fd; border: 1px solid var(--accent); }
+        .rank { font-weight: bold; color: var(--accent); width: 30px; }
+
+        /* Costume Editor */
+        #editor-grid {
+            width: 100%; aspect-ratio: 1; display: grid; touch-action: none;
+            grid-template-columns: repeat(16, 1fr); grid-template-rows: repeat(16, 1fr);
+            border: 2px solid #ddd; border-radius: 8px; overflow: hidden; background: #fafafa;
+        }
+        #editor-grid div { border: 1px solid #f0f0f0; cursor: crosshair; touch-action: none; }
+        
+        #palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 15px; }
+        .color-swatch { width: 100%; aspect-ratio: 1; border-radius: 4px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
+        .color-swatch.selected { border: 3px solid #333; transform: scale(1.1); }
+        .editor-controls { display: flex; gap: 10px; margin-top: 15px; }
+
+        /* Shop */
+        #shop-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding-bottom: 20px;}
+        .shop-card {
+            background: #f8f9fa; border-radius: 12px; padding: 15px; text-align: center;
+            border: 2px solid #eee; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .shop-emoji { font-size: 3rem; margin: 10px 0; }
+        .shop-price { font-weight: bold; color: #FFA500; margin-bottom: 10px; }
+
+        /* Wallet */
+        .wallet-card {
+            background: linear-gradient(135deg, #FFD700, #FFA500); padding: 30px; border-radius: 16px;
+            color: white; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(255,165,0,0.3);
+        }
+        .coin-amount { font-size: 3rem; font-weight: bold; margin: 10px 0; }
+
+        /* Bottom Navigation */
+        nav {
+            height: 80px; flex-shrink: 0;
+            background: var(--nav-bg); display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #eee; z-index: 30; padding: 0 5px; box-sizing: border-box;
+        }
+
+        .nav-btn {
+            background: none; border: none; padding: 10px; border-radius: 20px;
+            cursor: pointer; color: var(--text-muted); transition: all 0.2s ease;
+            display: flex; justify-content: center; align-items: center; flex: 1; margin: 0 5px;
+        }
+
+        .nav-btn.active { background: var(--active-bg); color: var(--text-main); }
+        .nav-btn svg { width: 24px; height: 24px; stroke-width: 2; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="environment">
+        <div class="pixel-bg-layer"></div>
+        <div id="pet-wrapper" onclick="petPug()">
+            <div id="base-pug"></div>
+            <div id="costume-overlay"></div>
+            <div id="shop-overlay"></div>
+        </div>
+    </div>
+
+    <div id="camera-panel" class="panel active">
+        <h2>Study Focus</h2>
+        <p style="color: var(--text-muted)">100 coins per 25 minutes! Click the timer to set duration.</p>
+        
+        <div id="timer-display" onclick="openTimePicker()">25:00</div>
+        <input type="time" id="native-time-picker" class="time-picker-hidden" value="00:25" onchange="saveNativeTime()" onblur="saveNativeTime()">
+
+        <button class="btn" id="start-timer-btn" onclick="toggleTimer()">Start Session</button>
+    </div>
+
+    <div id="stats-panel" class="panel">
+        <h2>Friends & Leaderboard</h2>
+        <div class="friend-box">
+            <p style="margin: 0 0 5px 0;">Your Friend Code: <b id="my-friend-code" style="color: var(--accent); letter-spacing: 1px;"></b></p>
+            <div class="friend-input-group">
+                <input type="text" id="friend-input" placeholder="Enter friend's code..." maxlength="8">
+                <button class="btn" style="padding: 10px 20px;" onclick="addFriend()">Add</button>
+            </div>
+        </div>
+        <div id="leaderboard-list"></div>
+    </div>
+
+    <div id="sparkles-panel" class="panel">
+        <h2>Costume Editor</h2>
+        <p style="color: var(--text-muted); margin-top: 0;">Draw here! It saves directly onto your pug.</p>
+        <div id="editor-grid"></div>
+        
+        <div class="editor-controls">
+            <button class="btn" style="flex:1; background: #e74c3c;" onclick="clearCostume()">Clear</button>
+            <button class="btn" style="flex:1; background: #2ecc71;" onclick="eraserMode()">Eraser</button>
+        </div>
+
+        <p style="margin: 15px 0 5px 0; font-weight: bold;">Palette</p>
+        <div id="palette"></div>
+    </div>
+
+    <div id="shop-panel" class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin:0;">Item Shop</h2>
+            <div style="font-weight: bold; color: #FFA500;">🪙 <span id="shop-coin-display">150</span></div>
+        </div>
+        <div id="shop-container"></div>
+    </div>
+
+    <div id="wallet-panel" class="panel">
+        <h2>Your Wallet</h2>
+        <div class="wallet-card">
+            <div>Total Coins</div>
+            <div class="coin-amount" id="wallet-balance">150</div>
+            <div>Keep studying to earn more!</div>
+        </div>
+    </div>
+
+    <nav>
+        <button class="nav-btn active" data-target="camera" onclick="switchTab('camera', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="3"/></svg>
+        </button>
+        <button class="nav-btn" data-target="stats" onclick="switchTab('stats', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </button>
+        <button class="nav-btn" data-target="sparkles" onclick="switchTab('sparkles', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2.4 7.6 7.6 2.4-7.6 2.4-2.4 7.6-2.4-7.6-7.6-2.4 7.6-2.4z"/></svg>
+        </button>
+        <button class="nav-btn" data-target="shop" onclick="switchTab('shop', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+        </button>
+        <button class="nav-btn" data-target="wallet" onclick="switchTab('wallet', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M18 12h.01"/></svg>
+        </button>
+    </nav>
+</div>
+
+<script>
+    // --- Global State ---
+    const GRID_SIZE = 16;
+    let selectedColor = 'transparent';
+    let isDrawing = false;
+    let coins = 150; 
+    let initialDuration = 25 * 60; // For reward calc
+    let timeLeft = 25 * 60;
+    let timerInterval = null;
+    let isStudying = false;
+
+    // --- Tab Navigation ---
+    function switchTab(target, btnElement) {
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+
+        btnElement.classList.add('active');
+
+        const panels = {
+            'camera': 'camera-panel',
+            'stats': 'stats-panel',
+            'sparkles': 'sparkles-panel',
+            'shop': 'shop-panel',
+            'wallet': 'wallet-panel'
+        };
+
+        if(panels[target]) {
+            document.getElementById(panels[target]).classList.add('active');
+        }
+    }
+
+    // --- Pixel Art Generator (Pug) ---
+    const pugDesign = [
+        "0003300000000330",
+        "0033330000003333",
+        "0331111111111113",
+        "0311111111111113",
+        "0311111111111113",
+        "0111133333333111",
+        "0111333333333311",
+        "0113344333344331",
+        "0113344333344331",
+        "0113333444433331",
+        "0111333333333311",
+        "0011113355331110",
+        "0001111555511100",
+        "0000011111111000",
+        "0000000111100000",
+        "0000000000000000"
+    ];
+    
+    const pugColors = { '0': 'transparent', '1': '#E4B573', '3': '#3A2312', '4': '#111', '5': '#FF8BA0' };
+    const basePug = document.getElementById('base-pug');
+    
+    pugDesign.forEach(row => {
+        for(let char of row) {
+            const cell = document.createElement('div');
+            cell.style.backgroundColor = pugColors[char];
+            basePug.appendChild(cell);
+        }
+    });
+
+    // --- Pet Interaction ---
+    function petPug() {
+        const pug = document.getElementById('pet-wrapper');
+        pug.style.transform = 'scale(1.1) translateY(-20px)';
+        setTimeout(() => { pug.style.transform = ''; }, 200);
+    }
+
+    // --- Dynamic Pixel Backgrounds ---
+    const pixelBackgrounds = [
+        "linear-gradient(to bottom, #87CEEB 0%, #87CEEB 60%, #55cc55 60%, #32CD32 100%)", // Day
+        "linear-gradient(to bottom, #FF7E5F 0%, #FEB47B 50%, #d45d79 50%, #6A0572 100%)", // Sunset
+        "linear-gradient(to bottom, #0F2027 0%, #203A43 55%, #1b2e35 55%, #111 100%)",   // Night
+        "linear-gradient(to bottom, #F7971E 0%, #FFD200 45%, #EDC9AF 45%, #E3A857 100%)"  // Desert
+    ];
+    let bgIndex = 0;
+
+    function cycleBackground() {
+        bgIndex = (bgIndex + 1) % pixelBackgrounds.length;
+        document.getElementById('environment').style.background = pixelBackgrounds[bgIndex];
+    }
+
+    // --- Pixel Costume Editor Logic ---
+    const editorGrid = document.getElementById('editor-grid');
+    const overlayGrid = document.getElementById('costume-overlay');
+    const palette = document.getElementById('palette');
+
+    // Build Editor & Overlay Grids mapped 1:1
+    for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+        const editCell = document.createElement('div');
+        editCell.dataset.index = i;
+        
+        const overlayCell = document.createElement('div');
+        overlayCell.classList.add('pixel');
+        
+        // Mouse Events
+        editCell.addEventListener('mousedown', (e) => { e.preventDefault(); isDrawing = true; paint(i); });
+        editCell.addEventListener('mouseenter', () => { if (isDrawing) paint(i); });
+        
+        editorGrid.appendChild(editCell);
+        overlayGrid.appendChild(overlayCell);
+    }
+
+    document.addEventListener('mouseup', () => isDrawing = false);
+
+    // Touch Support for mobile painting
+    editorGrid.addEventListener('touchmove', (e) => {
+        e.preventDefault(); 
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.parentElement === editorGrid && el.dataset.index) {
+            paint(el.dataset.index);
+        }
+    }, { passive: false });
+
+    editorGrid.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.parentElement === editorGrid && el.dataset.index) {
+            paint(el.dataset.index);
+        }
+    }, { passive: false });
+
+    function paint(index) {
+        editorGrid.children[index].style.backgroundColor = selectedColor;
+        overlayGrid.children[index].style.backgroundColor = selectedColor; // Instantly applies to Pug!
+    }
+
+    // Generate Palette Colors
+    for (let i = 0; i < 64; i++) {
+        const swatch = document.createElement('div');
+        swatch.classList.add('color-swatch');
+        
+        let colorVal;
+        if (i < 8) {
+            const shade = Math.floor((i / 7) * 255);
+            colorVal = `rgb(${shade}, ${shade}, ${shade})`;
+        } else {
+            const hue = ((i - 8) / 55) * 360; 
+            colorVal = `hsl(${hue}, 90%, 55%)`;
+        }
+        
+        swatch.style.backgroundColor = colorVal;
+        swatch.addEventListener('click', (e) => {
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+            e.target.classList.add('selected');
+            selectedColor = colorVal;
+        });
+        palette.appendChild(swatch);
+    }
+    
+    palette.children[0].classList.add('selected');
+    selectedColor = palette.children[0].style.backgroundColor;
+
+    function eraserMode() {
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        selectedColor = 'transparent';
+    }
+
+    function clearCostume() {
+        for (let i = 0; i < editorGrid.children.length; i++) {
+            editorGrid.children[i].style.backgroundColor = 'transparent';
+            overlayGrid.children[i].style.backgroundColor = 'transparent';
+        }
+    }
+
+    // --- Study Timer & Picker Logic ---
+    function openTimePicker() {
+        if (isStudying) return;
+        document.getElementById('timer-display').style.display = 'none';
+        const picker = document.getElementById('native-time-picker');
+        picker.style.display = 'block';
+        picker.focus();
+        if (typeof picker.showPicker === 'function') {
+            try { picker.showPicker(); } catch(e) {}
+        }
+    }
+
+    function saveNativeTime() {
+        const val = document.getElementById('native-time-picker').value;
+        if (!val) return;
+        
+        const [hours, mins] = val.split(':').map(Number);
+        initialDuration = (hours * 3600) + (mins * 60);
+        if (initialDuration === 0) initialDuration = 60; // Min 1 min
+        
+        timeLeft = initialDuration;
+        
+        document.getElementById('native-time-picker').style.display = 'none';
+        document.getElementById('timer-display').style.display = 'block';
+        updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const secs = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+    }
+
+    function toggleTimer() {
+        const btn = document.getElementById('start-timer-btn');
+        if (isStudying) {
+            clearInterval(timerInterval);
+            btn.innerText = "Resume Session";
+            btn.style.background = "var(--accent)";
+            isStudying = false;
+        } else {
+            btn.innerText = "Pause Session";
+            btn.style.background = "#e67e22";
+            isStudying = true;
+            
+            document.getElementById('native-time-picker').style.display = 'none';
+            document.getElementById('timer-display').style.display = 'block';
+
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    isStudying = false;
+                    btn.innerText = "Start New Session";
+                    btn.style.background = "var(--accent)";
+                    
+                    // Reward logic: 100 coins per 25 minutes (4 coins per min multiplier)
+                    const totalMins = initialDuration / 60;
+                    const earnedCoins = Math.round(totalMins * 4);
+                    
+                    timeLeft = initialDuration;
+                    updateTimerDisplay();
+                    rewardCoins(earnedCoins);
+                    cycleBackground();
+                    alert(`Focus complete! Rate: 100🪙 per 25m. You earned ${earnedCoins} coins!`);
+                }
+            }, 1000);
+        }
+    }
+
+    function rewardCoins(amount) {
+        coins += amount;
+        updateCoinDisplays();
+    }
+
+    function updateCoinDisplays() {
+        document.getElementById('wallet-balance').innerText = coins;
+        document.getElementById('shop-coin-display').innerText = coins;
+    }
+
+    // --- Friends & Leaderboard Logic ---
+    let myCode = 'PUG' + Math.floor(Math.random() * 9000 + 1000);
+    document.getElementById('my-friend-code').innerText = myCode;
+
+    let leaderboardData = [
+        { name: "ScholarFox", hours: 142, isMe: false, isFriend: false },
+        { name: "PugMaster99", hours: 120, isMe: false, isFriend: false },
+        { name: "FocusKing", hours: 88, isMe: false, isFriend: false },
+        { name: "You", hours: 12, isMe: true, isFriend: false }
+    ];
+
+    function renderLeaderboard() {
+        const lbContainer = document.getElementById('leaderboard-list');
+        lbContainer.innerHTML = '';
+        leaderboardData.sort((a, b) => b.hours - a.hours);
+
+        leaderboardData.forEach((user, index) => {
+            const item = document.createElement('div');
+            item.classList.add('leaderboard-item');
+            if (user.isMe || user.isFriend) item.classList.add('highlight');
+            
+            const badge = user.isFriend ? '🤝 ' : '';
+            item.innerHTML = `
+                <div style="display:flex; align-items:center; gap: 15px;">
+                    <span class="rank">#${index + 1}</span>
+                    <span style="font-weight: 500;">${badge}${user.name}</span>
+                </div>
+                <div style="color: var(--text-muted)">${user.hours} hrs</div>
+            `;
+            lbContainer.appendChild(item);
+        });
+    }
+
+    function addFriend() {
+        const input = document.getElementById('friend-input');
+        const code = input.value.trim().toUpperCase();
+        if (code === myCode) { alert("You can't add yourself!"); return; }
+        if (code.length > 3) {
+            const randomHours = Math.floor(Math.random() * 100) + 10;
+            leaderboardData.push({ name: `Friend (${code})`, hours: randomHours, isMe: false, isFriend: true });
+            renderLeaderboard();
+            input.value = '';
+            alert("Friend added successfully!");
+        } else {
+            alert("Please enter a valid friend code.");
+        }
+    }
+
+    renderLeaderboard();
+
+    // --- Shop System ---
+    const shopItems = [
+        { id: 'tophat', name: "Top Hat", price: 50, type: "hat", emoji: "🎩", equipClass: "equip-hat" },
+        { id: 'crown', name: "Crown", price: 150, type: "hat", emoji: "👑", equipClass: "equip-hat" },
+        { id: 'boba', name: "Boba Tea", price: 40, type: "drink", emoji: "🧋", equipClass: "equip-drink" },
+        { id: 'coffee', name: "Coffee", price: 25, type: "drink", emoji: "☕", equipClass: "equip-drink" },
+        { id: 'pizza', name: "Pizza", price: 30, type: "food", emoji: "🍕", equipClass: "equip-food" },
+        { id: 'bone', name: "Treat Bone", price: 60, type: "food", emoji: "🦴", equipClass: "equip-food" }
+    ];
+
+    let ownedItems = [];
+    let equippedItems = { hat: null, drink: null, food: null };
+
+    function renderShop() {
+        const container = document.getElementById('shop-container');
+        container.innerHTML = '';
+        
+        shopItems.forEach(item => {
+            const card = document.createElement('div');
+            card.classList.add('shop-card');
+            
+            const isOwned = ownedItems.includes(item.id);
+            const isEquipped = equippedItems[item.type] === item.id;
+            
+            let btnHtml = '';
+            if (!isOwned) {
+                btnHtml = `<button class="btn" style="padding: 10px;" onclick="buyItem('${item.id}')">Buy</button>`;
+            } else if (!isEquipped) {
+                btnHtml = `<button class="btn" style="padding: 10px; background: #2ecc71;" onclick="equipItem('${item.id}')">Equip</button>`;
+            } else {
+                btnHtml = `<button class="btn" style="padding: 10px; background: #95a5a6;" onclick="unequipItem('${item.type}')">Unequip</button>`;
+            }
+
+            card.innerHTML = `
+                <div class="shop-emoji">${item.emoji}</div>
+                <div style="font-weight: bold;">${item.name}</div>
+                <div class="shop-price">${isOwned ? 'Purchased' : '🪙 ' + item.price}</div>
+                ${btnHtml}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function buyItem(id) {
+        const item = shopItems.find(i => i.id === id);
+        if (coins >= item.price) {
+            coins -= item.price;
+            ownedItems.push(id);
+            updateCoinDisplays();
+            equipItem(id); 
+            renderShop();
+        } else { alert("Not enough coins! Keep studying!"); }
+    }
+
+    function equipItem(id) {
+        const item = shopItems.find(i => i.id === id);
+        equippedItems[item.type] = item.id;
+        renderShop();
+        renderPugOverlays();
+    }
+
+    function unequipItem(type) {
+        equippedItems[type] = null;
+        renderShop();
+        renderPugOverlays();
+    }
+
+    function renderPugOverlays() {
+        const overlay = document.getElementById('shop-overlay');
+        overlay.innerHTML = ''; 
+        Object.values(equippedItems).forEach(itemId => {
+            if (itemId) {
+                const item = shopItems.find(i => i.id === itemId);
+                const el = document.createElement('div');
+                el.className = item.equipClass;
+                el.innerText = item.emoji;
+                overlay.appendChild(el);
+            }
+        });
+    }
+
+    renderShop();
+</script>
+</body>
+</html>
